@@ -3,6 +3,13 @@ extern crate rand;
 use std::cmp::min;
 use std::cmp::max;
 
+/// A graph contains 64 nodes which represent squares on the chess board.
+///
+/// Each node is connected to between 2 and 8 others via edges which represent valid moves made by
+/// a knight (1 square in one direction followed by 2 squares in another or vice versa).
+///
+/// Ants traverse this graph in an attempt to find a valid knight's tour. Pheromone is layed along
+/// each edge so that subsequent ants can learn from those who came before.
 struct Graph {
     nodes: Vec<Node>,
 }
@@ -14,6 +21,9 @@ impl Graph {
         for i in 0..64 {
             let mut node = Node::new(i);
 
+            // Find the minimum square of nodes which contain all of the possible moves from
+            // the current node. A knight can only move 2 squares in any direction so there is
+            // no point searching for moves beyond that boundary.
             let min_x = max(0, node.x - 2);
             let max_x = min(7, node.x + 2);
             let min_y = max(0, node.y - 2);
@@ -21,6 +31,9 @@ impl Graph {
 
             for x in min_x..max_x + 1 {
                 for y in min_y..max_y + 1 {
+                    // Use pythagoras (a^2 + b^2 = c^2) to determine if this is a valid knigth's move.
+                    // A knight's move is two sides of a right-angled triangle where a = 1 and b = 2.
+                    // This means that c must be 1^2 + 2^2 = 1 + 4 = 5 to form a valid move.
                     if 5 == ((node.x - x).pow(2) + (node.y - y).pow(2)) {
                         let edge = Edge::new(initial_pheromone, y * 8 + x);
                         node.edges.push(edge);
@@ -42,6 +55,10 @@ impl Graph {
         &mut self.nodes[*index as usize]
     }
 
+    /// Evapourates previously laid pheromones at a specified rate.
+    ///
+    /// This is useful so that fruitless paths are eventually forgotten by the ants which
+    /// strengthens the use of fruitful paths.
     fn evaporate_pheromones(&mut self, rate: &f32) {
         for node in &mut self.nodes {
             for edge in &mut node.edges {
@@ -51,6 +68,7 @@ impl Graph {
     }
 }
 
+/// A single node in the graph representing a square on the chess board.
 struct Node {
     x: i8,
     y: i8,
@@ -71,6 +89,9 @@ impl Node {
     }
 }
 
+/// A single connection betweeon one node and another.
+///
+/// Each edge represents a valid knight's move from the owning node to a target node.
 struct Edge {
     pheromone: f32,
     target: i8,
@@ -82,6 +103,7 @@ impl Edge {
     }
 }
 
+/// Ants traverse the graph in an attempt to find knight's tours.
 struct Ant {
     start: i8,
     current: i8,
